@@ -1,8 +1,3 @@
-"""
-Loan Default Risk Predictor — Streamlit Dashboard
-Run: streamlit run app.py
-Make sure you run `python src/train.py` first!
-"""
 
 import streamlit as st
 import pandas as pd

@@ -1,53 +1,86 @@
-"""
-Train the loan default prediction model.
-Run this first before launching the Streamlit app.
-Usage: python src/train.py
-"""
 
-import pandas as pd
-import joblib
+
 import os
+import joblib
+import pandas as pd
+
 from sklearn.datasets import fetch_openml
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import classification_report, roc_auc_score
+
 from xgboost import XGBClassifier
 
 print("Loading dataset...")
-# Fetch German credit dataset (no Kaggle account needed)
+
+# Load German Credit dataset
 data = fetch_openml("credit-g", version=1, as_frame=True)
 df = data.frame
 
-# Encode categorical columns
-for col in df.select_dtypes("category").columns:
-    df[col] = LabelEncoder().fit_transform(df[col])
-
-# Target: 'class' column (good=0, bad=1)
-X = df.drop("class", axis=1)
+# Create target BEFORE encoding
 y = (df["class"] == "bad").astype(int)
 
+# Features
+X = df.drop("class", axis=1)
+
+# Encode categorical feature columns
+for col in X.select_dtypes(include=["category", "object"]).columns:
+    le = LabelEncoder()
+    X[col] = le.fit_transform(X[col].astype(str))
+
+print("\nOverall target distribution:")
+print(y.value_counts())
+
+# Stratified split to preserve class balance
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
+    X,
+    y,
+    test_size=0.2,
+    random_state=42,
+    stratify=y
 )
 
-print("Training XGBoost model...")
+print("\nTraining target distribution:")
+print(y_train.value_counts())
+
+print("\nTest target distribution:")
+print(y_test.value_counts())
+
+print("\nTraining XGBoost model...")
+
 model = XGBClassifier(
     n_estimators=100,
     max_depth=5,
+    learning_rate=0.1,
     random_state=42,
-    eval_metric="logloss",
+    eval_metric="logloss"
 )
+
 model.fit(X_train, y_train)
 
+# Predictions
 y_pred = model.predict(X_test)
+y_prob = model.predict_proba(X_test)[:, 1]
+
 print("\n--- Model Evaluation ---")
 print(classification_report(y_test, y_pred))
-print(f"ROC-AUC Score: {roc_auc_score(y_test, y_pred):.3f}")
 
-# Save model and feature list
+try:
+    auc = roc_auc_score(y_test, y_prob)
+    print(f"ROC-AUC Score: {auc:.3f}")
+except Exception as e:
+    print(f"ROC-AUC could not be calculated: {e}")
+
+# Save model
 os.makedirs("models", exist_ok=True)
+
 joblib.dump(model, "models/model.pkl")
-joblib.dump(X.columns.tolist(), "models/features.pkl")
-print("\nModel saved to models/model.pkl")
-print("Training complete! Now run: streamlit run app.py")
+joblib.dump(list(X.columns), "models/features.pkl")
+
+print("\nModel saved successfully!")
+print("models/model.pkl")
+print("models/features.pkl")
+
+print("\nTraining complete!")
+print("Run the app using:")
+print("streamlit run app.py")
