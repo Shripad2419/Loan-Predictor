@@ -3,7 +3,7 @@
 An end-to-end machine learning web app that predicts whether a loan applicant
 is likely to default, with SHAP-based explainability.
 
-**Live Demo:** [Loan Default Risk Prediction.streamlit.app]([https://share.streamlit.io](https://loan-predictor-yvvrdq7pvagjacmziarnlg.streamlit.app/))
+**Live Demo:** (https://loan-predictor-yvvrdq7pvagjacmziarnlg.streamlit.app/)
 
 ---
 
